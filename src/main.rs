@@ -14,7 +14,8 @@ struct Model {
 }
 impl Model {
     fn reset(&mut self) {
-        self.chamber.cells.cur = [0.5; CELL_COUNT]
+        self.chamber.cells.cur = [0.0; CELL_COUNT];
+        self.chamber.cells.prev = [0.0; CELL_COUNT];
     }
 }
 
@@ -126,7 +127,7 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
 
-    stream.play().unwrap();
+    // stream.play().unwrap();
 
     Model { stream, chamber }
 }
@@ -192,7 +193,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     for i in 0..CELL_COUNT {
         let pressure = model.chamber.cells.cur[i];
         draw.quad()
-            .w_h(cell_width, 10.0)
+            .w_h(cell_width, 30.0)
             .x_y(((i as f32 * cell_width) as f32) - 250.0, 100.0)
             .color(Gray::new(pressure + 0.5, pressure + 0.5, pressure + 0.5));
     }
