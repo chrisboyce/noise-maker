@@ -3,7 +3,7 @@ use nannou_audio as audio;
 use nannou_audio::Buffer;
 use std::f64::consts::PI;
 
-const CELL_COUNT: usize = 16;
+const CELL_COUNT: usize = 128;
 fn main() {
     nannou::app(model).update(update).run();
 }
@@ -11,6 +11,11 @@ fn main() {
 struct Model {
     stream: audio::Stream<Audio>,
     chamber: Chamber<CELL_COUNT>,
+}
+impl Model {
+    fn reset(&mut self) {
+        self.chamber.cells.cur = [0.5; CELL_COUNT]
+    }
 }
 
 struct Chamber<const N: usize> {
@@ -37,6 +42,7 @@ impl<const N: usize> Chamber<N> {
     }
 
     fn add_pressure(&mut self, pressure: f64) {
+        self.cells.cur[0] += pressure;
         // self.cells[0] += pressure;
     }
     // Given:
@@ -59,14 +65,34 @@ impl<const N: usize> Chamber<N> {
     // 3. Rotate buffers for next step:
     //     u_prev = u_curr
     //     u_curr = u_next
+    // for i from 1 to N - 2:
+    // u_next[i] = 2 * u_curr[i]
+    //             - u_prev[i]
+    //             + C * C * (u_curr[i+1] - 2 * u_curr[i] + u_curr[i-1])
 
     fn update_pressures(&mut self) {
         let mut next = [0.0; N];
         for (index, next_value) in next.iter_mut().enumerate() {
-            // *next_value = 2.0 * self.cells.cur[index] - self.cells.prev[i] + 0.1 * ()
+            let cur = self.cells.cur[index];
+            let prev = self.cells.prev[index];
+            let left = if index > 0 {
+                self.cells.cur[index - 1]
+            } else {
+                0.0
+            };
+            let right = if index < N - 2 {
+                self.cells.cur[index + 1]
+            } else {
+                0.0
+            };
+            // if index == 0 {
+            //     *next_value = 0.0;
+            // } else {
+            *next_value = (2.0 * cur) - prev + 0.1 * (right - 2.0 * cur + left);
+            // }
         }
-        todo!()
-        // let mut dest = [0.0; N];
+        self.cells.prev = self.cells.cur;
+        self.cells.cur = next;
     }
 }
 
@@ -77,7 +103,8 @@ struct Audio {
 
 fn model(app: &App) -> Model {
     // Create a window to receive key pressed events.
-    app.new_window()
+    let window = app
+        .new_window()
         .key_pressed(key_pressed)
         .view(view)
         .build()
@@ -121,6 +148,12 @@ fn audio(audio: &mut Audio, buffer: &mut Buffer) {
 
 fn key_pressed(_app: &App, model: &mut Model, key: Key) {
     match key {
+        Key::R => {
+            model.reset();
+        }
+        Key::A => {
+            model.chamber.add_pressure(0.1);
+        }
         // Pause or unpause the audio when Space is pressed.
         Key::Space => {
             if model.stream.is_playing() {
@@ -152,6 +185,7 @@ fn key_pressed(_app: &App, model: &mut Model, key: Key) {
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
+    let r = frame.rect();
     frame.clear(DIMGRAY);
     let draw = app.draw();
     let cell_width = 500.0 / (CELL_COUNT as f32);
@@ -159,13 +193,13 @@ fn view(app: &App, model: &Model, frame: Frame) {
         let pressure = model.chamber.cells.cur[i];
         draw.quad()
             .w_h(cell_width, 10.0)
-            .x_y((i * 10) as f32, 100.0)
-            .color(Gray::new(pressure, pressure, pressure));
+            .x_y(((i as f32 * cell_width) as f32) - 250.0, 100.0)
+            .color(Gray::new(pressure + 0.5, pressure + 0.5, pressure + 0.5));
     }
     draw.to_frame(app, &frame).unwrap();
 }
 
 fn update(_app: &App, model: &mut Model, _update: Update) {
-    model.chamber.add_pressure(0.01);
+    // model.chamber.add_pressure(0.01);
     model.chamber.update_pressures();
 }
