@@ -73,25 +73,28 @@ impl<const N: usize> Chamber<N> {
 
     fn update_pressures(&mut self) {
         let mut next = [0.0; N];
-        for (index, next_value) in next.iter_mut().enumerate() {
+        for index in 1..(N - 1) {
             let cur = self.cells.cur[index];
             let prev = self.cells.prev[index];
-            let left = if index > 0 {
-                self.cells.cur[index - 1]
-            } else {
-                0.0
-            };
-            let right = if index < N - 2 {
-                self.cells.cur[index + 1]
-            } else {
-                0.0
-            };
-            // if index == 0 {
-            //     *next_value = 0.0;
-            // } else {
-            *next_value = (2.0 * cur) - prev + 0.1 * (right - 2.0 * cur + left);
-            // }
+            let left = self.cells.cur[index - 1];
+            let right = self.cells.cur[index + 1];
+            next[index] = (2.0 * cur) - prev + 0.5 * (right - 2.0 * cur + left);
         }
+        // for (index, next_value) in next.iter_mut().enumerate() {
+        //     let cur = self.cells.cur[index];
+        //     let prev = self.cells.prev[index];
+        //     let left = if index > 0 {
+        //         self.cells.cur[index - 1]
+        //     } else {
+        //         0.0
+        //     };
+        //     let right = if index < (N - 2) {
+        //         self.cells.cur[index + 1]
+        //     } else {
+        //         0.0
+        //     };
+        //     *next_value = (2.0 * cur) - prev + 0.1 * (right - 2.0 * cur + left);
+        // }
         self.cells.prev = self.cells.cur;
         self.cells.cur = next;
     }
